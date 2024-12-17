@@ -1,0 +1,44 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Output of the build process
+bin/
+*.out
+
+# Go environment files
+*.env
+.env.*
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Dependency files
+vendor/
+Gopkg.lock
+Gopkg.toml
+go.sum
+
+# Logs and debugging
+*.log
+*.test
+*.prof
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Git-specific files
+*.orig
