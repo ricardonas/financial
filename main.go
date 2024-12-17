@@ -7,52 +7,73 @@ import (
 	"financial/repository"
 	"financial/service"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
 func main() {
-	// Create a context and PostgreSQL connection string
-	ctx := context.Background()
-	connString := "postgres://admin:admin@localhost:5432/financial" // Correct connection string format
+	// Load environment variables
+	loadEnv()
 
-	// Initialize PostgreSQL database connection
+	// Initialize application context and dependencies
+	ctx := context.Background()
+	financialController := initializeDependencies(ctx)
+
+	// Initialize and start the router
+	r := setupRouter(financialController)
+	log.Println("Starting server on port 8080...")
+	r.Run(":8080")
+}
+
+// loadEnv loads environment variables from .env file
+func loadEnv() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
+
+// initializeDependencies sets up the database, repository, service, and controller
+func initializeDependencies(ctx context.Context) *controller.FinancialController {
+	// Initialize database connection
+	connString := os.Getenv("DATABASE_CONNECTION")
 	_, err := database.NewPG(ctx, connString)
 	if err != nil {
 		log.Fatalf("Error initializing PostgreSQL: %v", err)
 	}
 
-	// Create the repository
+	// Initialize repository
 	repo, err := repository.NewFinancialRepository(ctx, connString)
 	if err != nil {
 		log.Fatalf("Error initializing repository: %v", err)
 	}
 
-	// Create the service
+	// Initialize service
 	financialService := service.NewFinancialService(repo)
 
-	// Create the controller
-	financialController := controller.NewFinancialController(financialService)
+	// Initialize controller
+	return controller.NewFinancialController(financialService)
+}
 
-	// Initialize Gin router
+// setupRouter sets up the Gin routes
+func setupRouter(financialController *controller.FinancialController) *gin.Engine {
 	r := gin.Default()
 
-	// Define the route
+	// Define routes
 	r.GET("/financial/:id", func(c *gin.Context) {
 		// Retrieve the 'id' parameter from the URL
 		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr) // Convert string to integer
+		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			// If the id is not a valid integer, return an error
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 			return
 		}
 
 		// Call the controller method to get financial details
-		financial, err := financialController.GetFinancialById(c, id) // Pass c to GetFinancialById
+		financial, err := financialController.GetFinancialById(c, id)
 		if err != nil {
-			// Handle errors (e.g., if the record is not found)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -61,6 +82,5 @@ func main() {
 		c.JSON(http.StatusOK, financial)
 	})
 
-	// Start the server
-	r.Run(":8080")
+	return r
 }
